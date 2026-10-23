@@ -7,10 +7,11 @@
 [![CatBoost](https://img.shields.io/badge/CatBoost-deployed-FFCC00?style=for-the-badge)](https://catboost.ai/)
 [![XAI](https://img.shields.io/badge/XAI-SHAP%20%7C%20LIME-8A2BE2?style=for-the-badge)](https://shap.readthedocs.io/)
 [![Test R²](https://img.shields.io/badge/Test%20R%C2%B2-0.929-2E7D32?style=for-the-badge)](#-results)
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://sl-car-price-estimator-bjruz8rzidloyow7ikhuve.streamlit.app/)
 
 **Melanie Samaratunga** · 269188K · MSc in Artificial Intelligence, University of Moratuwa · *Applied Machine Learning: Final Assignment*
 
-> 🔗 **Live app:** _add your Streamlit link here_ &nbsp;·&nbsp; 🎥 **Video:** _add link if required_
+> 🔗 **Live app:** [sl-car-price-estimator.streamlit.app](https://sl-car-price-estimator-bjruz8rzidloyow7ikhuve.streamlit.app/) &nbsp;·&nbsp; 📂 **Repo:** [meluom/sl-car-price-estimator](https://github.com/meluom/sl-car-price-estimator)
 
 Sri Lanka reopened vehicle imports in 2025, and buyers and sellers still have no reliable reference price; most people scroll through dozens of adverts and guess. This project cleans **6,436 real Riyasewana.com adverts (May – August 2026)** and compares **7 tuned models against 2 baselines** using a leakage-safe evaluation. It deploys an explainable **CatBoost** model that estimates a car's fair asking price, with a **median error of 5.5%**, and explains every estimate with SHAP.
 
