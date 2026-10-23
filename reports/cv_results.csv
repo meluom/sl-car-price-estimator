@@ -1,0 +1,8 @@
+model,CV_R2,CV_R2_sd,CV_MAE_mn
+CatBoost,0.8845,0.0497,0.8296
+XGBoost,0.8828,0.0735,0.7829
+LightGBM,0.8801,0.081,0.8008
+Random Forest (tuned),0.8647,0.1011,0.7647
+Random Forest (default),0.8601,0.1061,0.7894
+Stacking (RF+XGB+LGBM),0.8273,0.0671,1.2716
+Ridge,0.7759,0.0569,1.3791

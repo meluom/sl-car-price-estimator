@@ -1,0 +1,17 @@
+{
+ "raw_rows": 6436,
+ "merged_Number of Cylinder": 218,
+ "merged_Power Shutter": 218,
+ "merged_Power Mirror": 218,
+ "dup_url_removed": 1,
+ "negotiable_removed": 1440,
+ "engine_corrected": 69,
+ "engine_set_missing": 0,
+ "antique_removed": 6,
+ "rare_families_grouped": 175,
+ "mileage_set_missing": 45,
+ "price_too_low_removed": 3,
+ "price_peer_outliers_removed": 13,
+ "final_rows": 4973,
+ "repost_rows": 85
+}

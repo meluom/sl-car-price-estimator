@@ -1,0 +1,74 @@
+[
+ {
+  "model":"LightGBM",
+  "R2":0.9402,
+  "MAE_mn":0.7866,
+  "RMSE_mn":1.561,
+  "MAPE_%":8.7919,
+  "R2_log":0.9573
+ },
+ {
+  "model":"Random Forest (tuned)",
+  "R2":0.9369,
+  "MAE_mn":0.7595,
+  "RMSE_mn":1.6035,
+  "MAPE_%":8.4753,
+  "R2_log":0.9597
+ },
+ {
+  "model":"Random Forest (default)",
+  "R2":0.9339,
+  "MAE_mn":0.791,
+  "RMSE_mn":1.6404,
+  "MAPE_%":8.8764,
+  "R2_log":0.9561
+ },
+ {
+  "model":"XGBoost",
+  "R2":0.9316,
+  "MAE_mn":0.7956,
+  "RMSE_mn":1.669,
+  "MAPE_%":8.843,
+  "R2_log":0.9527
+ },
+ {
+  "model":"CatBoost",
+  "R2":0.9285,
+  "MAE_mn":0.8493,
+  "RMSE_mn":1.7059,
+  "MAPE_%":8.8815,
+  "R2_log":0.9574
+ },
+ {
+  "model":"Stacking (RF+XGB+LGBM)",
+  "R2":0.9118,
+  "MAE_mn":1.1255,
+  "RMSE_mn":1.8947,
+  "MAPE_%":12.0648,
+  "R2_log":0.9444
+ },
+ {
+  "model":"Baseline: peer median (family+age)",
+  "R2":0.8478,
+  "MAE_mn":1.0036,
+  "RMSE_mn":2.4894,
+  "MAPE_%":13.7041,
+  "R2_log":0.885
+ },
+ {
+  "model":"Ridge (linear)",
+  "R2":0.8249,
+  "MAE_mn":1.4104,
+  "RMSE_mn":2.67,
+  "MAPE_%":14.2014,
+  "R2_log":0.9171
+ },
+ {
+  "model":"Baseline: global median",
+  "R2":-0.0535,
+  "MAE_mn":4.3797,
+  "RMSE_mn":6.5497,
+  "MAPE_%":73.7532,
+  "R2_log":-0.0038
+ }
+]
