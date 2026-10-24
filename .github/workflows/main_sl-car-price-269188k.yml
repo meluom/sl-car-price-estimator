@@ -1,35 +1,53 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
+# MLOps continuous deployment to Azure App Service.
+# Every push to main is tested first; the app is deployed to Azure ONLY if all tests pass.
+# Docs: https://github.com/Azure/webapps-deploy
 
-name: 'Build and deploy Python app to Azure Web App: sl-car-price-269188k'
+name: CD - test then deploy to Azure
 
 on:
   push:
-    branches:
-    - main
+    branches: [main]
   workflow_dispatch:
 
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v2
+concurrency:
+  group: azure-deploy
+  cancel-in-progress: true
 
-    - name: Set up Python version
-      uses: actions/setup-python@v1
-      with:
-        python-version: '3.13'
-    
-    - name: Build using AppService-Build
-      uses: azure/appservice-build@v2
-      with:
-        platform: python
-        platform-version: '3.13'
-    
-    - name: 'Deploy to Azure Web App'
-      uses: azure/webapps-deploy@v2
-      with: 
-        app-name: 'sl-car-price-269188k'
-        slot-name: 'production'
-        publish-profile: ${{ secrets.AzureAppService_PublishProfile_2e192b4653bc4f128a2915de7e7c390a }}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest
+      - name: Run tests (data rules, drift, quality gate, model, app)
+        run: pytest -q tests
+
+  deploy:
+    needs: test                     # deployment is gated on the tests passing
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://sl-car-price-269188k.azurewebsites.net
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Azure Web App (Oryx installs requirements on the server)
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: sl-car-price-269188k
+          slot-name: production
+          package: .
+          publish-profile: ${{ secrets.AzureAppService_PublishProfile_2e192b4653bc4f128a2915de7e7c390a }}
+      - name: Smoke test the live site
+        run: |
+          for i in $(seq 1 20); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" https://sl-car-price-269188k.azurewebsites.net/_stcore/health || true)
+            echo "attempt $i: HTTP $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 15
+          done
+          echo "Site did not become healthy" && exit 1
