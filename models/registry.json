@@ -1,0 +1,23 @@
+[
+ {
+  "version": "v1",
+  "trained_at": "2026-10-24T20:35:53+00:00",
+  "data_hash": "d9ab970b0a3d",
+  "rows": 4973,
+  "metrics": {
+   "R2": 0.9285,
+   "MAE_mn": 0.8493,
+   "MAPE_%": 8.8815,
+   "median_abs_pct_err": 5.49,
+   "within_20pct": 0.9057,
+   "n_test": 997
+  },
+  "drift_psi": {},
+  "params": {
+   "iterations": 1000,
+   "learning_rate": 0.1,
+   "depth": 4,
+   "l2_leaf_reg": 6
+  }
+ }
+]
