@@ -245,5 +245,6 @@ All cleaning and modelling are original.
 **Limitations.** These are asking prices, not sale prices. The data covers four months of 2026 and does not model trim levels. Rare models are less accurate.
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="footer">Melanie Samaratunga · 269188K · MSc in AI, University of Moratuwa · '
+st.markdown(f'<div class="footer">Model {meta.get("model_version", "v1")} · test R² {meta["test_metrics"]["R2"]:.3f} · '
+            'Melanie Samaratunga · 269188K · MSc in AI, University of Moratuwa · '
             '<a href="https://github.com/meluom/sl-car-price-estimator">Source on GitHub</a></div>', unsafe_allow_html=True)
