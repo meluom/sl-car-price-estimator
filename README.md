@@ -6,6 +6,7 @@
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.9-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
 [![CatBoost](https://img.shields.io/badge/CatBoost-deployed-FFCC00?style=for-the-badge)](https://catboost.ai/)
 [![XAI](https://img.shields.io/badge/XAI-SHAP%20%7C%20LIME-8A2BE2?style=for-the-badge)](https://shap.readthedocs.io/)
+[![CI](https://github.com/meluom/sl-car-price-estimator/actions/workflows/ci.yml/badge.svg)](https://github.com/meluom/sl-car-price-estimator/actions/workflows/ci.yml)
 [![Test R²](https://img.shields.io/badge/Test%20R%C2%B2-0.929-2E7D32?style=for-the-badge)](#-results)
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://sl-car-price-estimator-bjruz8rzidloyow7ikhuve.streamlit.app/)
 
@@ -26,6 +27,7 @@ Sri Lanka reopened vehicle imports in 2025, and buyers and sellers still have no
 - [Results](#-results)
 - [Explainability: SHAP & LIME](#-explainability-shap--lime)
 - [Streamlit App](#%EF%B8%8F-streamlit-app)
+- [MLOps](#-mlops-test-retrain-gate-deploy)
 - [Repository Structure](#-repository-structure)
 - [Run It Yourself](#%EF%B8%8F-run-it-yourself)
 - [Limitations & Roadmap](#%EF%B8%8F-limitations--roadmap)
@@ -41,7 +43,7 @@ Sri Lanka reopened vehicle imports in 2025, and buyers and sellers still have no
 | 🧹 **Audited data** | 10 documented cleaning rules, each logging its row count (`reports/cleaning_audit.json`) |
 | 🔒 **Leakage-safe** | Re-posted adverts grouped, so a car never appears in both train and test |
 | ⚖️ **Fair comparison** | 5-fold GroupKFold CV · every model tuned · model chosen on CV, **not** on the test set |
-| 🔍 **Explainable** | Global + local SHAP, LIME cross-check, and a live SHAP waterfall in the app |
+| 🔍 **Explainable** | Global + local SHAP, LIME cross-check, and a live SHAP price-drivers chart in the app |
 | 💡 **Real finding** | Mileage only matters up to **~100,000 km**; location has almost no effect |
 
 > **Honest metrics only.** Errors are reported in rupees and percent. Log-scale "accuracy" figures like "99%" are avoided, because they make weak models look near-perfect.
@@ -174,15 +176,52 @@ Both contain the same 6,436 adverts. Each raw file name identifies its model (fo
 <p align="center"><img src="reports/figures/app_screenshot.png" width="850" alt="Streamlit app"></p>
 
 - Pick a brand and model, and typical engine, fuel and body are pre-filled.
-- You get an **estimate**, a **likely range**, and a **live SHAP waterfall** explaining why.
+- You get an **estimate**, a **likely range**, and a **live SHAP price-drivers chart** (for example "Age · 10 yrs: +19%") explaining why.
 - A warning appears when the chosen model has few training adverts.
 - Tabs for model comparison, SHAP/LIME charts and data notes.
+
+---
+
+## 🔁 MLOps: Test, Retrain, Gate, Deploy
+
+```mermaid
+flowchart LR
+    A["New adverts pushed<br/>to data/raw/"] --> B["GitHub Actions<br/>retrain.yml"]
+    B --> C["Validate data<br/>schema · rows · prices"]
+    C --> D["Drift check<br/>PSI vs training data"]
+    D --> E["Train CatBoost<br/>tuned params"]
+    E --> F{"Quality gate<br/>R² ≥ 0.90 · MAPE ≤ 12%<br/>not worse than prod"}
+    F -- pass --> G["Promote model<br/>registry.json v+1"]
+    F -- fail --> H["Keep live model<br/>job fails, alert"]
+    G --> I["Commit to main"] --> J["Streamlit Cloud<br/>auto-redeploys"]
+    K["Every push / PR"] --> L["ci.yml: 18 tests"]
+```
+
+| Component | File | What it does |
+|---|---|---|
+| **Continuous integration** | `.github/workflows/ci.yml` | Runs 18 automated tests on every push: cleaning rules, drift metric, quality gate, model sanity (older car → cheaper), app smoke test |
+| **Retraining pipeline** | `train.py` | One command: clean → validate → drift check → train → evaluate on the grouped hold-out → gate → promote |
+| **Data validation** | `train.validate()` | Stops the run if columns are missing, there are fewer than 3,000 rows, or prices or ages are impossible |
+| **Drift monitoring** | `train.psi()` + `models/reference_stats.json` | Population Stability Index for age, mileage, engine and price vs the live model's training data (> 0.25 = major shift) |
+| **Quality gate** | `train.gate()` | Promotes only if test R² ≥ 0.90, MAPE ≤ 12% and R² is no more than 0.02 below production |
+| **Model registry** | `models/registry.json` | Version, timestamp, data hash, metrics, drift and parameters for every promoted model |
+| **Continuous training** | `.github/workflows/retrain.yml` | Triggered by new data in `data/raw/`, monthly on a schedule, or manually; commits the promoted model |
+| **Continuous deployment** | Streamlit Community Cloud | Redeploys the live app automatically on every push to `main`; the app footer shows the model version |
+
+```bash
+python train.py --dry-run   # retrain + evaluate without replacing the live model
+python train.py             # full pipeline: promote if the gate passes
+pytest -v tests             # run the test suite locally
+```
 
 ---
 
 ## 📁 Repository Structure
 
 ```
+├── .github/workflows/               # ci.yml (tests on every push) · retrain.yml (continuous training)
+├── train.py                         # MLOps pipeline: validate → drift → train → gate → promote
+├── tests/test_pipeline.py           # 18 automated tests
 ├── app.py                           # Streamlit app: loads the pickle, predicts, explains
 ├── data_prep.py                     # Reusable cleaning pipeline with audit log
 ├── catboost_wrapper.py              # sklearn-compatible CatBoost wrapper (needed to unpickle)
@@ -190,7 +229,9 @@ Both contain the same 6,436 adverts. Each raw file name identifies its model (fo
 ├── data/raw/                        # 30 raw Riyasewana CSV files
 ├── models/
 │   ├── car_price_model.pkl          # Deployed CatBoost pipeline
-│   ├── metadata.json                # Dropdown options, defaults, metrics
+│   ├── metadata.json                # Dropdown options, defaults, metrics, model version
+│   ├── registry.json                # Model registry (versions, metrics, data hash)
+│   ├── reference_stats.json         # Training-data sample for drift checks
 │   └── test_results.json
 ├── reports/
 │   ├── figures/                     # All charts
@@ -235,7 +276,8 @@ streamlit run app.py
 - Trim level and service history are not modelled.
 
 **Roadmap:**
-- [ ] Monthly re-scrape, retrain and drift monitoring (MLOps)
+- [x] Automated retraining, quality gate, drift monitoring and CI/CD (MLOps)
+- [ ] Monthly re-scrape of fresh Riyasewana adverts
 - [ ] Extract trim level ("G grade", "M Sport") from advert titles
 - [ ] Quantile models for calibrated price ranges
 - [ ] Extend to all brands and to ikman.lk
