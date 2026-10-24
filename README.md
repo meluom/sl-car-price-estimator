@@ -7,12 +7,13 @@
 [![CatBoost](https://img.shields.io/badge/CatBoost-deployed-FFCC00?style=for-the-badge)](https://catboost.ai/)
 [![XAI](https://img.shields.io/badge/XAI-SHAP%20%7C%20LIME-8A2BE2?style=for-the-badge)](https://shap.readthedocs.io/)
 [![CI](https://github.com/meluom/sl-car-price-estimator/actions/workflows/ci.yml/badge.svg)](https://github.com/meluom/sl-car-price-estimator/actions/workflows/ci.yml)
+[![CD to Azure](https://github.com/meluom/sl-car-price-estimator/actions/workflows/main_sl-car-price-269188k.yml/badge.svg)](https://github.com/meluom/sl-car-price-estimator/actions/workflows/main_sl-car-price-269188k.yml)
 [![Test R²](https://img.shields.io/badge/Test%20R%C2%B2-0.929-2E7D32?style=for-the-badge)](#-results)
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://sl-car-price-estimator-bjruz8rzidloyow7ikhuve.streamlit.app/)
 
 **Melanie Samaratunga** · 269188K · MSc in Artificial Intelligence, University of Moratuwa · *Applied Machine Learning: Final Assignment*
 
-> 🔗 **Live app:** [sl-car-price-estimator.streamlit.app](https://sl-car-price-estimator-bjruz8rzidloyow7ikhuve.streamlit.app/) &nbsp;·&nbsp; 📂 **Repo:** [meluom/sl-car-price-estimator](https://github.com/meluom/sl-car-price-estimator)
+> 🔗 **Live app (Azure):** [sl-car-price-269188k.azurewebsites.net](https://sl-car-price-269188k.azurewebsites.net) &nbsp;·&nbsp; **Mirror (Streamlit Cloud):** [sl-car-price-estimator.streamlit.app](https://sl-car-price-estimator-bjruz8rzidloyow7ikhuve.streamlit.app/) &nbsp;·&nbsp; 📂 **Repo:** [meluom/sl-car-price-estimator](https://github.com/meluom/sl-car-price-estimator)
 
 Sri Lanka reopened vehicle imports in 2025, and buyers and sellers still have no reliable reference price; most people scroll through dozens of adverts and guess. This project cleans **6,436 real Riyasewana.com adverts (May – August 2026)** and compares **7 tuned models against 2 baselines** using a leakage-safe evaluation. It deploys an explainable **CatBoost** model that estimates a car's fair asking price, with a **median error of 5.5%**, and explains every estimate with SHAP.
 
@@ -193,8 +194,12 @@ flowchart LR
     E --> F{"Quality gate<br/>R² ≥ 0.90 · MAPE ≤ 12%<br/>not worse than prod"}
     F -- pass --> G["Promote model<br/>registry.json v+1"]
     F -- fail --> H["Keep live model<br/>job fails, alert"]
-    G --> I["Commit to main"] --> J["Streamlit Cloud<br/>auto-redeploys"]
+    G --> I["Commit to main"]
     K["Every push / PR"] --> L["ci.yml: 18 tests"]
+    I --> M["CD workflow: 18 tests"]
+    M -- pass --> N["Deploy to Azure App Service<br/>+ live health check"]
+    M -- fail --> O["No deploy"]
+    I --> J["Streamlit Cloud mirror<br/>auto-redeploys"]
 ```
 
 | Component | File | What it does |
@@ -206,7 +211,8 @@ flowchart LR
 | **Quality gate** | `train.gate()` | Promotes only if test R² ≥ 0.90, MAPE ≤ 12% and R² is no more than 0.02 below production |
 | **Model registry** | `models/registry.json` | Version, timestamp, data hash, metrics, drift and parameters for every promoted model |
 | **Continuous training** | `.github/workflows/retrain.yml` | Triggered by new data in `data/raw/`, monthly on a schedule, or manually; commits the promoted model |
-| **Continuous deployment** | Streamlit Community Cloud | Redeploys the live app automatically on every push to `main`; the app footer shows the model version |
+| **Continuous deployment** | `.github/workflows/main_sl-car-price-269188k.yml` | On every push to `main`: runs the 18 tests, and **only if they pass** deploys to **Azure App Service** (Linux, F1, Central India) and checks the live site is healthy. The app footer shows the model version |
+| **Mirror deployment** | Streamlit Community Cloud | Second copy of the app, redeployed automatically on every push to `main` |
 
 ```bash
 python train.py --dry-run   # retrain + evaluate without replacing the live model
@@ -219,7 +225,7 @@ pytest -v tests             # run the test suite locally
 ## 📁 Repository Structure
 
 ```
-├── .github/workflows/               # ci.yml (tests on every push) · retrain.yml (continuous training)
+├── .github/workflows/               # ci.yml (tests) · retrain.yml (continuous training) · main_sl-car-price-269188k.yml (test → deploy to Azure)
 ├── train.py                         # MLOps pipeline: validate → drift → train → gate → promote
 ├── tests/test_pipeline.py           # 18 automated tests
 ├── app.py                           # Streamlit app: loads the pickle, predicts, explains
@@ -262,7 +268,9 @@ streamlit run app.py
 **Retrain:** open `car_price_riyasewana_2026.ipynb` and run all cells (about 6–10 minutes).
 **New data:** drop freshly scraped CSVs with the same columns into `data/raw/` and re-run the notebook. `data_prep.py` applies the same rules.
 
-**Deploy (Streamlit Community Cloud):** share.streamlit.io → **Create app** → choose this repo, branch `main` and `app.py` → **Advanced settings → Python 3.13** → **Deploy**.
+**Deploy (Azure App Service):** created with the Azure CLI (Linux plan F1, Python 3.13, startup command `python -m streamlit run app.py --server.port 8000 --server.address 0.0.0.0 --server.headless true`, WebSockets on), then linked to GitHub with `az webapp deployment github-actions add`; the generated workflow was edited so deployment depends on the test job.
+
+**Deploy (Streamlit Community Cloud mirror):** share.streamlit.io → **Create app** → choose this repo, branch `main` and `app.py` → **Advanced settings → Python 3.13** → **Deploy**.
 
 ---
 
