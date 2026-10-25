@@ -1,4 +1,5 @@
 model,CV_R2,CV_R2_sd,CV_MAE_mn
+EBM (Explainable Boosting),0.8851,0.0386,0.9038
 CatBoost,0.8845,0.0497,0.8296
 XGBoost,0.8828,0.0735,0.7829
 LightGBM,0.8801,0.081,0.8008

@@ -1,4 +1,3 @@
-# Full set for re-running the analysis notebook (model comparison needs XGBoost and LightGBM)
 streamlit==1.66.1
 pandas==3.0.5
 numpy==2.5.3
@@ -9,4 +8,7 @@ catboost==1.2.10
 shap==0.54.1
 matplotlib==3.11.2
 joblib==1.6.0
+interpret-core==0.7.8
+lime==0.2.0.1
+scipy==1.18.1
 jupyter

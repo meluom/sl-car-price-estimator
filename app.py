@@ -233,7 +233,8 @@ with tab_model:
     with st.container(border=True):
         st.markdown('<div class="section-title">Model comparison on 997 unseen test cars</div>', unsafe_allow_html=True)
         st.dataframe(comparison_table(results, meta["model_name"]), width="stretch", hide_index=True)
-        st.caption(f"Deployed model: **{meta['model_name']}**, chosen on cross-validated R² (the most stable across folds), not on the test score.")
+        st.caption(f"Deployed model: **{meta['model_name']}**. It tied with the EBM (the glass-box new algorithm) on cross-validated R² "
+                   "and was chosen on its lower cross-validated error, never on the test score.")
     fig_dir = ROOT / "reports" / "figures"
     charts = [("Model comparison", "07_model_comparison.png"),
               ("Global feature importance (SHAP)", "09_shap_bar.png"),

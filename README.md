@@ -15,7 +15,7 @@
 
 > 🔗 **Live app (Azure):** [sl-car-price-269188k.azurewebsites.net](https://sl-car-price-269188k.azurewebsites.net) &nbsp;·&nbsp; **Mirror (Streamlit Cloud):** [sl-car-price-estimator.streamlit.app](https://sl-car-price-estimator-bjruz8rzidloyow7ikhuve.streamlit.app/) &nbsp;·&nbsp; 📂 **Repo:** [meluom/sl-car-price-estimator](https://github.com/meluom/sl-car-price-estimator)
 
-Sri Lanka reopened vehicle imports in 2025, and buyers and sellers still have no reliable reference price; most people scroll through dozens of adverts and guess. This project cleans **6,436 real Riyasewana.com adverts (May – August 2026)** and compares **7 tuned models against 2 baselines** using a leakage-safe evaluation. It deploys an explainable **CatBoost** model that estimates a car's fair asking price, with a **median error of 5.5%**, and explains every estimate with SHAP.
+Sri Lanka reopened vehicle imports in 2025, and buyers and sellers still have no reliable reference price; most people scroll through dozens of adverts and guess. This project cleans **6,436 real Riyasewana.com adverts (May – August 2026)** and compares **8 tuned models against 2 baselines** using a leakage-safe evaluation, including an **Explainable Boosting Machine (EBM)**, a glass-box algorithm not covered in the lectures. It deploys an explainable **CatBoost** model that estimates a car's fair asking price, with a **median error of 5.5%**, and explains every estimate with SHAP.
 
 ---
 
@@ -27,6 +27,7 @@ Sri Lanka reopened vehicle imports in 2025, and buyers and sellers still have no
 - [Exploratory Analysis](#-exploratory-analysis)
 - [Results](#-results)
 - [Explainability: SHAP & LIME](#-explainability-shap--lime)
+- [New Algorithm: EBM](#-new-algorithm-explainable-boosting-machine-ebm)
 - [Streamlit App](#%EF%B8%8F-streamlit-app)
 - [MLOps](#-mlops-test-retrain-gate-deploy)
 - [Repository Structure](#-repository-structure)
@@ -44,6 +45,7 @@ Sri Lanka reopened vehicle imports in 2025, and buyers and sellers still have no
 | 🧹 **Audited data** | 10 documented cleaning rules, each logging its row count (`reports/cleaning_audit.json`) |
 | 🔒 **Leakage-safe** | Re-posted adverts grouped, so a car never appears in both train and test |
 | ⚖️ **Fair comparison** | 5-fold GroupKFold CV · every model tuned · model chosen on CV, **not** on the test set |
+| 🧪 **New algorithm** | Explainable Boosting Machine (glass box): ties for best CV R² and confirms SHAP's findings |
 | 🔍 **Explainable** | Global + local SHAP, LIME cross-check, and a live SHAP price-drivers chart in the app |
 | 💡 **Real finding** | Mileage only matters up to **~100,000 km**; location has almost no effect |
 
@@ -133,6 +135,7 @@ Both contain the same 6,436 adverts. Each raw file name identifies its model (fo
 | Model | CV R² (mean ± sd) | Test R² | MAE (Rs M) | MAPE |
 |---|---|---:|---:|---:|
 | 🥇 **CatBoost (deployed)** | **0.885 ± 0.050** | **0.929** | **0.85** | **8.9%** |
+| 🧪 EBM (new algorithm) | 0.885 ± 0.039 | 0.920 | 0.91 | 9.8% |
 | XGBoost | 0.883 ± 0.074 | 0.932 | 0.80 | 8.8% |
 | LightGBM | 0.880 ± 0.081 | 0.940 | 0.79 | 8.8% |
 | Random Forest (tuned) | 0.865 ± 0.101 | 0.937 | 0.76 | 8.5% |
@@ -144,7 +147,7 @@ Both contain the same 6,436 adverts. Each raw file name identifies its model (fo
 
 <p align="center"><img src="reports/figures/07_model_comparison.png" width="900" alt="Model comparison"></p>
 
-**Why CatBoost?** It had the highest and **most stable** cross-validation score (sd 0.050, against 0.074–0.101 for the others), it handles brand, model and town natively, and it produces exact TreeSHAP explanations from a 0.3 MB model. LightGBM scored slightly higher on test, but the choice was made on CV, because picking by test score would make the reported result optimistic.
+**Why CatBoost?** It tied with the EBM for the best cross-validated R² (0.885, a difference of 0.0006) and won the tie on cross-validated error (MAE Rs 0.83M against 0.90M). It is also more stable across folds than the other tree models (sd 0.050, against 0.074–0.101), handles brand, model and town natively, and produces exact TreeSHAP explanations from a 0.3 MB model. LightGBM scored slightly higher on test, but the choice was made on CV, because picking by test score would make the reported result optimistic.
 
 <p align="center"><img src="reports/figures/08_actual_vs_pred.png" width="850" alt="Actual vs predicted"></p>
 
@@ -169,6 +172,24 @@ Both contain the same 6,436 adverts. Each raw file name identifies its model (fo
   <img src="reports/figures/12_shap_waterfall.png" width="430" alt="SHAP waterfall">
   <img src="reports/figures/13_lime.png" width="430" alt="LIME explanation">
 </p>
+
+---
+
+## 🧪 New Algorithm: Explainable Boosting Machine (EBM)
+
+The lectures covered trees, Random Forest, AdaBoost, gradient boosting, XGBoost, LightGBM, CatBoost, SVM, voting and stacking. The new algorithm is the **Explainable Boosting Machine** (Lou et al., 2013; InterpretML), a *glass-box* generalised additive model with pairwise interactions: one learned curve per feature, trained by boosting on one feature at a time. Its explanations are exact, because the curves are the model. It was tuned and tested with exactly the same split and cross-validation (`ebm_new_algorithm.ipynb`).
+
+| | EBM | CatBoost |
+|---|---|---|
+| CV R² (mean ± sd) | 0.885 ± 0.039 | 0.885 ± 0.050 |
+| CV MAE (Rs M) | 0.90 | **0.83** |
+| Test R² · median error | 0.920 · 6.7% | 0.929 · 5.5% |
+
+<p align="center"><img src="reports/figures/15_ebm_shape_age_mileage.png" width="900" alt="EBM shape functions for age and mileage"></p>
+
+- EBM finds the **same 100,000 km mileage threshold** as SHAP, without being told.
+- Its feature ranking agrees with SHAP on CatBoost (Spearman 0.77): **age first by far**, location near the bottom.
+- On test, the glass box comes within 0.01 R² of the deployed CatBoost, so the explanations reflect the market, not one model's quirks.
 
 ---
 
@@ -232,6 +253,7 @@ pytest -v tests             # run the test suite locally
 ├── data_prep.py                     # Reusable cleaning pipeline with audit log
 ├── catboost_wrapper.py              # sklearn-compatible CatBoost wrapper (needed to unpickle)
 ├── car_price_riyasewana_2026.ipynb  # Full analysis: audit → EDA → models → SHAP/LIME → export
+├── ebm_new_algorithm.ipynb          # New algorithm: Explainable Boosting Machine (run after the main notebook)
 ├── data/raw/                        # 30 raw Riyasewana CSV files
 ├── models/
 │   ├── car_price_model.pkl          # Deployed CatBoost pipeline
