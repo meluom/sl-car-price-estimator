@@ -1,6 +1,7 @@
 """Streamlit app: Sri Lankan used-car price estimator (Riyasewana 2026) with SHAP explanations."""
 import base64
 import json
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
 import joblib
@@ -58,6 +59,28 @@ def load():
     meta = json.loads((ROOT / "models" / "metadata.json").read_text())
     results = pd.read_json(ROOT / "models" / "test_results.json")
     return model, meta, results
+
+
+def fmt(v, dp):
+    """Round half-up from the stored value (avoids 0.8845 showing as 0.884 through float rounding)."""
+    return str(Decimal(str(v)).quantize(Decimal(1).scaleb(-dp), rounding=ROUND_HALF_UP))
+
+
+def comparison_table(results, deployed):
+    """Same layout and rounding as the report: sorted by cross-validated R², deployed model first."""
+    cv_path = ROOT / "reports" / "cv_results.csv"
+    cv = pd.read_csv(cv_path) if cv_path.exists() else pd.DataFrame(columns=["model", "CV_R2", "CV_R2_sd"])
+    cv["model"] = cv["model"].replace({"Ridge": "Ridge (linear)"})
+    t = results.merge(cv[["model", "CV_R2", "CV_R2_sd"]], on="model", how="left")
+    t = t.sort_values(["CV_R2", "R2"], ascending=False, na_position="last")
+    return pd.DataFrame({
+        "Model": [f"{m} (deployed)" if m == deployed else m for m in t["model"]],
+        "CV R² (mean ± sd)": [f"{fmt(a, 3)} ± {fmt(b, 3)}" if pd.notna(a) else "–" for a, b in zip(t["CV_R2"], t["CV_R2_sd"])],
+        "Test R²": [fmt(v, 3) for v in t["R2"]],
+        "MAE (Rs mn)": [fmt(v, 2) for v in t["MAE_mn"]],
+        "RMSE (Rs mn)": [fmt(v, 2) for v in t["RMSE_mn"]],
+        "MAPE": [fmt(v, 1) + "%" for v in t["MAPE_%"]],
+    })
 
 
 @st.cache_resource
@@ -209,9 +232,7 @@ with tab_predict:
 with tab_model:
     with st.container(border=True):
         st.markdown('<div class="section-title">Model comparison on 997 unseen test cars</div>', unsafe_allow_html=True)
-        show = results.set_index("model")[["R2", "MAE_mn", "RMSE_mn", "MAPE_%"]].rename(
-            columns={"MAE_mn": "MAE (Rs mn)", "RMSE_mn": "RMSE (Rs mn)", "MAPE_%": "MAPE (%)"})
-        st.dataframe(show.style.format("{:.3f}").highlight_max(subset=["R2"], color="#FCE9BD"), width="stretch")
+        st.dataframe(comparison_table(results, meta["model_name"]), width="stretch", hide_index=True)
         st.caption(f"Deployed model: **{meta['model_name']}**, chosen on cross-validated R² (the most stable across folds), not on the test score.")
     fig_dir = ROOT / "reports" / "figures"
     charts = [("Model comparison", "07_model_comparison.png"),
@@ -245,6 +266,6 @@ All cleaning and modelling are original.
 **Limitations.** These are asking prices, not sale prices. The data covers four months of 2026 and does not model trim levels. Rare models are less accurate.
 """, unsafe_allow_html=True)
 
-st.markdown(f'<div class="footer">Model {meta.get("model_version", "v1")} · test R² {meta["test_metrics"]["R2"]:.3f} · '
+st.markdown(f'<div class="footer">Model {meta.get("model_version", "v1")} · test R² {fmt(meta["test_metrics"]["R2"], 3)} · '
             'Melanie Samaratunga · 269188K · MSc in AI, University of Moratuwa · '
             '<a href="https://github.com/meluom/sl-car-price-estimator">Source on GitHub</a></div>', unsafe_allow_html=True)
