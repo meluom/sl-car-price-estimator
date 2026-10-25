@@ -94,8 +94,8 @@ def evaluate(df):
     m = build_model().fit(df.iloc[tr][FEATURES], df.iloc[tr]["Price_mn"])
     y, p = df.iloc[te]["Price_mn"], m.predict(df.iloc[te][FEATURES])
     err = np.abs(p - y) / y
-    return {"R2": round(r2_score(y, p), 4), "MAE_mn": round(mean_absolute_error(y, p), 4),
-            "MAPE_%": round(100 * mean_absolute_percentage_error(y, p), 4),
+    return {"R2": round(r2_score(y, p), 6), "MAE_mn": round(mean_absolute_error(y, p), 6),
+            "MAPE_%": round(100 * mean_absolute_percentage_error(y, p), 6),
             "median_abs_pct_err": round(100 * float(np.median(err)), 2),
             "within_20pct": round(float((err <= 0.2).mean()), 4), "n_test": int(len(te))}
 
