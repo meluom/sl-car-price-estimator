@@ -5,7 +5,7 @@
   "data_hash": "d9ab970b0a3d",
   "rows": 4973,
   "metrics": {
-   "R2": 0.9285,
+   "R2": 0.928534,
    "MAE_mn": 0.8493,
    "MAPE_%": 8.8815,
    "median_abs_pct_err": 5.49,
