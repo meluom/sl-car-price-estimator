@@ -19,5 +19,31 @@
    "depth": 4,
    "l2_leaf_reg": 6
   }
+ },
+ {
+  "version": "v2",
+  "trained_at": "2026-11-01T03:44:48+00:00",
+  "data_hash": "d9ab970b0a3d",
+  "rows": 4973,
+  "metrics": {
+   "R2": 0.928534,
+   "MAE_mn": 0.849256,
+   "MAPE_%": 8.88154,
+   "median_abs_pct_err": 5.49,
+   "within_20pct": 0.9057,
+   "n_test": 997
+  },
+  "drift_psi": {
+   "Age": 0.0021,
+   "Mileage_km": 0.0081,
+   "Engine_cc": 0.0014,
+   "Price_mn": 0.0021
+  },
+  "params": {
+   "iterations": 1000,
+   "learning_rate": 0.1,
+   "depth": 4,
+   "l2_leaf_reg": 6
+  }
  }
 ]
